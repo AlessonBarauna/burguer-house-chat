@@ -314,6 +314,7 @@ header {
     <div class="cart-total">
       <div class="lbl">Total do pedido</div>
       <div class="val" id="cartTotalVal">R$ 0,00</div>
+      <div id="deliveryFeeNote" style="display:none;font-size:11px;color:var(--accent);margin-top:3px;"></div>
     </div>
     <button class="btn-checkout" id="btnCheckout" disabled onclick="openCheckout()">
       Finalizar Pedido →
@@ -384,8 +385,18 @@ const MENU = [
 const cart = {}; // { itemId: qty }
 let isDelivery = true;
 
-function cartTotal() {
+const DELIVERY_FEE      = 6.00;  // taxa fixa de entrega
+const FREE_DELIVERY_MIN = 80.00; // pedido acima disso: frete grátis
+
+function cartSubtotal() {
   return MENU.reduce((acc, item) => acc + (cart[item.id] || 0) * item.price, 0);
+}
+function deliveryFee() {
+  if (!isDelivery) return 0;
+  return cartSubtotal() >= FREE_DELIVERY_MIN ? 0 : DELIVERY_FEE;
+}
+function grandTotal() {
+  return cartSubtotal() + deliveryFee();
 }
 function cartItemCount() {
   return Object.values(cart).reduce((a, b) => a + b, 0);
@@ -404,7 +415,17 @@ function updateCartUI() {
   badge.classList.toggle('visible', count > 0);
 
   // footer total
-  document.getElementById('cartTotalVal').textContent = fmt(total);
+  document.getElementById('cartTotalVal').textContent = fmt(grandTotal());
+  const feeNote = document.getElementById('deliveryFeeNote');
+  if (isDelivery && count > 0) {
+    const sub = cartSubtotal();
+    feeNote.textContent = sub >= FREE_DELIVERY_MIN
+      ? '🎉 Frete grátis!'
+      : `+ ${fmt(DELIVERY_FEE)} de entrega (grátis acima de ${fmt(FREE_DELIVERY_MIN)})`;
+    feeNote.style.display = 'block';
+  } else {
+    feeNote.style.display = 'none';
+  }
   document.getElementById('btnCheckout').disabled = count === 0;
 
   // re-render qty values
@@ -479,6 +500,7 @@ function setDelivery(val) {
   document.getElementById('optDelivery').classList.toggle('active', val);
   document.getElementById('optPickup').classList.toggle('active', !val);
   document.getElementById('addressGroup').style.display = val ? '' : 'none';
+  buildOrderSummary(); // recalcula frete ao trocar tipo
 }
 
 function buildOrderSummary() {
@@ -488,7 +510,24 @@ function buildOrderSummary() {
       <span class="item-name">${cart[i.id]}x ${i.emoji} ${i.name}</span>
       <span class="item-price">${fmt(cart[i.id] * i.price)}</span>
     </div>`).join('');
-  html += `<div class="total-line"><span>Total</span><span>${fmt(cartTotal())}</span></div>`;
+
+  const fee = deliveryFee();
+  const sub = cartSubtotal();
+  if (isDelivery) {
+    html += `<div class="item-line" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+      <span class="item-name" style="color:var(--muted)">Subtotal</span>
+      <span class="item-price" style="color:var(--muted)">${fmt(sub)}</span>
+    </div>`;
+    html += `<div class="item-line">
+      <span class="item-name" style="color:var(--muted)">
+        Taxa de entrega ${fee === 0 ? '<span style="color:#22c55e">🎉 grátis</span>' : ''}
+      </span>
+      <span class="item-price" style="color:${fee === 0 ? '#22c55e' : 'var(--muted)'}">
+        ${fee === 0 ? 'Grátis' : fmt(fee)}
+      </span>
+    </div>`;
+  }
+  html += `<div class="total-line"><span>Total</span><span>${fmt(grandTotal())}</span></div>`;
   document.getElementById('orderSummary').innerHTML = html;
 }
 
@@ -521,6 +560,13 @@ function submitOrder() {
 
   const items = MENU.filter(i => cart[i.id]);
   const lines = items.map(i => `• ${cart[i.id]}x ${i.name} — ${fmt(cart[i.id] * i.price)}`).join('\n');
+  const fee   = deliveryFee();
+  const sub   = cartSubtotal();
+  const total = grandTotal();
+
+  const feeLabel = !isDelivery ? '' : fee === 0
+    ? `\n🚚 *Taxa de entrega:* Grátis 🎉`
+    : `\n💵 *Subtotal:* ${fmt(sub)}\n🚚 *Taxa de entrega:* ${fmt(fee)}`;
 
   const msg = [
     `🍔 *PEDIDO — Burguer House*`,
@@ -531,8 +577,9 @@ function submitOrder() {
     ``,
     `📋 *Itens:*`,
     lines,
+    feeLabel,
     ``,
-    `💰 *Total: ${fmt(cartTotal())}*`,
+    `💰 *Total: ${fmt(total)}*`,
     obs ? `\n📝 *Obs:* ${obs}` : '',
   ].filter(l => l !== undefined).join('\n');
 
@@ -540,7 +587,10 @@ function submitOrder() {
 
   // Confirma no chat
   closeCheckout();
-  addMessage('assistant', `✅ Pedido enviado!\n\nObrigado, *${name}*! Seu pedido de ${fmt(cartTotal())} foi encaminhado para o WhatsApp da Burguer House. Em instantes nossa equipe vai confirmar e iniciar o preparo! 🍔🔥\n\nTempo estimado de entrega: ~40 minutos.`);
+  const deliveryInfo = isDelivery
+    ? `\n🚚 Taxa de entrega: ${fee === 0 ? 'Grátis 🎉' : fmt(fee)}`
+    : '\n🏠 Retirada no local';
+  addMessage('assistant', `✅ Pedido enviado!\n\nObrigado, *${name}*! Seu pedido de *${fmt(total)}* foi encaminhado para o WhatsApp da Burguer House.${deliveryInfo}\n\nEm instantes nossa equipe vai confirmar e iniciar o preparo! 🍔🔥\n\nTempo estimado: ~40 minutos.`);
 
   // Limpa carrinho
   Object.keys(cart).forEach(k => delete cart[k]);
