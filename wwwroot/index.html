@@ -3,196 +3,619 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Assistente Burguer House</title>
+<title>BurgerBot — Burguer House</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #0f0e0b;
-  --surface: #1a1914;
-  --surface2: #222118;
-  --accent: #e8a020;
-  --text: #f0ebe0;
-  --muted: rgba(240,235,224,0.5);
-  --border: rgba(232,160,32,0.12);
-  --bubble-user: #e8a020;
-  --bubble-bot: #1a1914;
+  --bg:          #0f0e0b;
+  --surface:     #1a1914;
+  --surface2:    #222118;
+  --accent:      #e8a020;
+  --accent-dark: #c73c1a;
+  --text:        #f0ebe0;
+  --muted:       rgba(240,235,224,0.5);
+  --border:      rgba(232,160,32,0.12);
+  --radius:      12px;
 }
-* { margin:0; padding:0; box-sizing:border-box; }
-body { background:var(--bg); font-family:'DM Sans',sans-serif; height:100vh; display:flex; flex-direction:column; color:var(--text); }
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); overflow:hidden; }
 
+/* ── Layout ── */
+.app { display:flex; flex-direction:column; height:100dvh; }
+
+/* ── Header ── */
 header {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 16px 20px;
-  display:flex; align-items:center; gap:14px;
-  flex-shrink:0;
+  background:var(--surface); border-bottom:1px solid var(--border);
+  padding:14px 18px; display:flex; align-items:center; gap:12px; flex-shrink:0;
 }
 .bot-avatar {
-  width:46px; height:46px; border-radius:12px;
-  background: linear-gradient(135deg, #e8a020, #c73c1a);
-  display:flex; align-items:center; justify-content:center;
-  font-size:22px; flex-shrink:0;
+  width:44px; height:44px; border-radius:var(--radius);
+  background:linear-gradient(135deg,var(--accent),var(--accent-dark));
+  display:flex; align-items:center; justify-content:center; font-size:21px; flex-shrink:0;
 }
-.bot-name { font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:1px; }
-.bot-sub { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:5px; }
-.dot-on { width:6px;height:6px;border-radius:50%;background:#22c55e;animation:blink 2s infinite; }
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
-.header-badge {
-  margin-left:auto; background:rgba(232,160,32,0.1); border:1px solid rgba(232,160,32,0.3);
-  color:var(--accent); font-size:11px; font-weight:600; padding:5px 12px; border-radius:50px;
-  letter-spacing:0.5px;
-}
+.bot-info { flex:1; min-width:0; }
+.bot-name { font-family:'Bebas Neue',sans-serif; font-size:19px; letter-spacing:1px; }
+.bot-sub  { font-size:11.5px; color:var(--muted); display:flex; align-items:center; gap:5px; margin-top:1px; }
+.dot-on   { width:6px; height:6px; border-radius:50%; background:#22c55e; animation:blink 2s infinite; flex-shrink:0; }
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
+.header-right { display:flex; align-items:center; gap:10px; }
+.badge-ia {
+  background:rgba(232,160,32,.1); border:1px solid rgba(232,160,32,.3);
+  color:var(--accent); font-size:11px; font-weight:600; padding:4px 10px;
+  border-radius:50px; letter-spacing:.5px;
+}
+.cart-btn {
+  position:relative; background:var(--surface2); border:1px solid var(--border);
+  width:40px; height:40px; border-radius:var(--radius); cursor:pointer;
+  display:flex; align-items:center; justify-content:center; font-size:18px;
+  transition:.2s; color:var(--text);
+}
+.cart-btn:hover { border-color:var(--accent); }
+.cart-count {
+  position:absolute; top:-6px; right:-6px;
+  background:var(--accent); color:#000; font-size:10px; font-weight:700;
+  width:18px; height:18px; border-radius:50%; display:none;
+  align-items:center; justify-content:center;
+}
+.cart-count.visible { display:flex; }
+
+/* ── Chat ── */
 .chat-window {
-  flex:1; overflow-y:auto; padding:20px 16px; display:flex; flex-direction:column; gap:14px;
+  flex:1; overflow-y:auto; padding:18px 14px; display:flex; flex-direction:column; gap:12px;
 }
 .chat-window::-webkit-scrollbar{width:3px;}
 .chat-window::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
 
-.msg-row { display:flex; gap:10px; align-items:flex-end; max-width:700px; }
+.msg-row { display:flex; gap:9px; align-items:flex-end; max-width:680px; }
 .msg-row.user { flex-direction:row-reverse; margin-left:auto; }
 .avatar {
-  width:32px; height:32px; border-radius:8px; flex-shrink:0;
-  display:flex; align-items:center; justify-content:center; font-size:15px;
-  background: linear-gradient(135deg, #e8a020, #c73c1a);
+  width:30px; height:30px; border-radius:8px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:14px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-dark));
 }
-.avatar.u { background: #2a2a2a; border: 1px solid rgba(255,255,255,0.1); }
+.avatar.u { background:#2a2a2a; border:1px solid rgba(255,255,255,.1); }
 .bubble {
-  max-width:74%; padding:12px 16px; border-radius:16px; font-size:14px; line-height:1.65;
+  max-width:76%; padding:11px 15px; border-radius:15px; font-size:13.5px; line-height:1.65;
 }
-.bubble.bot { background:var(--bubble-bot); border:1px solid var(--border); color:var(--text); border-bottom-left-radius:4px; }
-.bubble.user { background:var(--bubble-user); color:#000; font-weight:500; border-bottom-right-radius:4px; }
+.bubble.bot  { background:var(--surface); border:1px solid var(--border); border-bottom-left-radius:4px; }
+.bubble.user { background:var(--accent); color:#000; font-weight:500; border-bottom-right-radius:4px; }
 .time { font-size:10px; color:var(--muted); flex-shrink:0; padding:0 2px; }
 
-.suggestions {
-  display:flex; gap:8px; flex-wrap:wrap; padding: 8px 16px;
-  overflow-x:auto;
-}
-.sug-btn {
-  background: var(--surface2); border: 1px solid var(--border);
-  color: var(--accent); padding: 8px 14px; border-radius:50px;
-  font-size:12.5px; font-weight:500; cursor:pointer; transition:all 0.2s;
-  font-family:'DM Sans',sans-serif; white-space:nowrap; flex-shrink:0;
-}
-.sug-btn:hover { background: var(--accent); color:#000; border-color:var(--accent); }
+.typing-dots { display:flex; gap:4px; padding:2px 0; }
+.typing-dots span { width:7px; height:7px; border-radius:50%; background:var(--muted); animation:tdot 1.2s ease-in-out infinite; }
+.typing-dots span:nth-child(2){animation-delay:.2s} .typing-dots span:nth-child(3){animation-delay:.4s}
+@keyframes tdot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-7px)}}
 
+/* ── Suggestions ── */
+.suggestions { display:flex; gap:7px; padding:6px 14px; overflow-x:auto; flex-shrink:0; scrollbar-width:none; }
+.suggestions::-webkit-scrollbar{display:none;}
+.sug-btn {
+  background:var(--surface2); border:1px solid var(--border); color:var(--accent);
+  padding:7px 13px; border-radius:50px; font-size:12px; font-weight:500; cursor:pointer;
+  font-family:'DM Sans',sans-serif; white-space:nowrap; transition:.2s; flex-shrink:0;
+}
+.sug-btn:hover { background:var(--accent); color:#000; border-color:var(--accent); }
+
+/* ── Input ── */
 .input-area {
-  padding:12px 16px; background:var(--surface);
-  border-top:1px solid var(--border);
-  display:flex; gap:10px; align-items:flex-end; flex-shrink:0;
+  padding:10px 14px 14px; background:var(--surface); border-top:1px solid var(--border);
+  display:flex; gap:9px; align-items:flex-end; flex-shrink:0;
 }
 #userInput {
-  flex:1; background:var(--bg); border:1px solid var(--border); border-radius:20px;
-  padding:11px 16px; font-size:14px; font-family:'DM Sans',sans-serif;
-  color:var(--text); outline:none; resize:none; max-height:100px;
-  transition:border-color 0.2s;
+  flex:1; background:var(--bg); border:1px solid var(--border); border-radius:18px;
+  padding:10px 15px; font-size:13.5px; font-family:'DM Sans',sans-serif;
+  color:var(--text); outline:none; resize:none; max-height:90px; transition:border-color .2s;
 }
-#userInput:focus { border-color:rgba(232,160,32,0.5); }
+#userInput:focus { border-color:rgba(232,160,32,.5); }
 #userInput::placeholder { color:var(--muted); }
 #sendBtn {
-  width:44px;height:44px;border-radius:12px;border:none;
-  background:linear-gradient(135deg,#e8a020,#c73c1a);
-  color:#000;font-size:17px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:all 0.2s; flex-shrink:0;
+  width:42px; height:42px; border-radius:var(--radius); border:none;
+  background:linear-gradient(135deg,var(--accent),var(--accent-dark));
+  color:#000; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:.2s; flex-shrink:0;
 }
-#sendBtn:hover { transform:scale(1.07); }
-#sendBtn:disabled { opacity:0.4;cursor:not-allowed;transform:none; }
+#sendBtn:hover:not(:disabled) { transform:scale(1.07); }
+#sendBtn:disabled { opacity:.4; cursor:not-allowed; }
 
-.typing-dots { display:flex;gap:4px;padding:2px 0; }
-.typing-dots span { width:7px;height:7px;border-radius:50%;background:var(--muted);animation:bounce 1.2s ease-in-out infinite; }
-.typing-dots span:nth-child(2){animation-delay:.2s}
-.typing-dots span:nth-child(3){animation-delay:.4s}
-@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-8px)}}
+/* ═══════════════════════════════════════════════════
+   MENU PANEL (bottom sheet)
+═══════════════════════════════════════════════════ */
+.overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:50;
+  opacity:0; pointer-events:none; transition:opacity .3s;
+}
+.overlay.open { opacity:1; pointer-events:all; }
+
+.menu-panel {
+  position:fixed; bottom:0; left:0; right:0; z-index:51;
+  background:var(--surface); border-top:1px solid var(--border);
+  border-radius:20px 20px 0 0;
+  max-height:85dvh; display:flex; flex-direction:column;
+  transform:translateY(100%); transition:transform .35s cubic-bezier(.4,0,.2,1);
+}
+.menu-panel.open { transform:translateY(0); }
+
+.menu-panel-header {
+  padding:16px 18px 12px; display:flex; align-items:center; justify-content:space-between;
+  border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.menu-panel-header h2 { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:1px; color:var(--accent); }
+.btn-close {
+  width:34px; height:34px; border-radius:8px; background:var(--surface2); border:1px solid var(--border);
+  cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:16px; color:var(--muted);
+  transition:.2s;
+}
+.btn-close:hover { color:var(--text); border-color:var(--accent); }
+
+.menu-items { overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:10px; flex:1; }
+.menu-items::-webkit-scrollbar{width:3px;}
+.menu-items::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+
+.menu-category { font-size:10px; font-weight:600; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin:6px 0 4px; }
+
+.menu-item {
+  background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius);
+  padding:12px; display:flex; align-items:center; gap:12px; transition:border-color .2s;
+}
+.menu-item:hover { border-color:rgba(232,160,32,.3); }
+.menu-item .emoji { font-size:26px; flex-shrink:0; }
+.menu-item .info { flex:1; min-width:0; }
+.menu-item .info .name { font-weight:600; font-size:13.5px; }
+.menu-item .info .desc { font-size:11.5px; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.menu-item .info .price { color:var(--accent); font-weight:700; font-size:14px; margin-top:3px; }
+.qty-ctrl { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.qty-btn {
+  width:28px; height:28px; border-radius:7px; border:1px solid var(--border);
+  background:var(--surface); color:var(--text); font-size:16px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; transition:.15s; line-height:1;
+}
+.qty-btn:hover { background:var(--accent); color:#000; border-color:var(--accent); }
+.qty-val { font-weight:700; font-size:14px; min-width:16px; text-align:center; }
+
+.menu-panel-footer {
+  padding:14px 16px; border-top:1px solid var(--border); flex-shrink:0;
+  display:flex; align-items:center; gap:12px;
+}
+.cart-total { flex:1; }
+.cart-total .lbl { font-size:11px; color:var(--muted); }
+.cart-total .val { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--accent); letter-spacing:.5px; }
+.btn-checkout {
+  background:linear-gradient(135deg,var(--accent),var(--accent-dark));
+  color:#000; font-family:'DM Sans',sans-serif; font-weight:700; font-size:13.5px;
+  padding:13px 24px; border:none; border-radius:var(--radius); cursor:pointer; transition:.2s;
+}
+.btn-checkout:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(232,160,32,.3); }
+.btn-checkout:disabled { opacity:.4; cursor:not-allowed; transform:none; box-shadow:none; }
+
+/* ═══════════════════════════════════════════════════
+   CHECKOUT MODAL
+═══════════════════════════════════════════════════ */
+.checkout-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:60;
+  display:flex; align-items:flex-end; justify-content:center;
+  opacity:0; pointer-events:none; transition:opacity .3s;
+}
+@media(min-width:600px){.checkout-overlay{align-items:center;}}
+.checkout-overlay.open { opacity:1; pointer-events:all; }
+
+.checkout-modal {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:20px 20px 0 0; width:100%; max-width:520px;
+  padding:24px 20px 28px; max-height:92dvh; overflow-y:auto;
+  transform:translateY(40px); transition:transform .35s cubic-bezier(.4,0,.2,1);
+}
+@media(min-width:600px){.checkout-modal{border-radius:20px;transform:scale(.95);}}
+.checkout-overlay.open .checkout-modal { transform:translateY(0); }
+@media(min-width:600px){.checkout-overlay.open .checkout-modal{transform:scale(1);}}
+
+.checkout-modal h2 { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:1px; color:var(--accent); margin-bottom:18px; }
+
+.order-summary {
+  background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius);
+  padding:12px 14px; margin-bottom:18px;
+}
+.order-summary .item-line { display:flex; justify-content:space-between; font-size:13px; padding:4px 0; }
+.order-summary .item-line .item-name { color:var(--text); }
+.order-summary .item-line .item-price { color:var(--accent); font-weight:600; flex-shrink:0; margin-left:8px; }
+.order-summary .total-line { display:flex; justify-content:space-between; font-size:15px; font-weight:700; border-top:1px solid var(--border); margin-top:8px; padding-top:8px; }
+.order-summary .total-line span:last-child { color:var(--accent); }
+
+.form-group { margin-bottom:14px; }
+.form-group label { display:block; font-size:12px; font-weight:600; color:var(--muted); letter-spacing:.08em; text-transform:uppercase; margin-bottom:6px; }
+.form-group input, .form-group textarea {
+  width:100%; background:var(--bg); border:1px solid var(--border); border-radius:10px;
+  padding:11px 14px; font-size:13.5px; font-family:'DM Sans',sans-serif; color:var(--text);
+  outline:none; transition:border-color .2s;
+}
+.form-group input:focus, .form-group textarea:focus { border-color:rgba(232,160,32,.5); }
+.form-group input::placeholder, .form-group textarea::placeholder { color:var(--muted); }
+.form-group textarea { resize:none; height:72px; }
+
+.toggle-group { display:flex; gap:8px; }
+.toggle-opt {
+  flex:1; padding:10px; border-radius:10px; border:1px solid var(--border);
+  background:var(--surface2); text-align:center; cursor:pointer; font-size:13px;
+  font-weight:500; transition:.2s; user-select:none;
+}
+.toggle-opt.active { background:rgba(232,160,32,.15); border-color:var(--accent); color:var(--accent); }
+
+.checkout-actions { display:flex; gap:10px; margin-top:20px; }
+.btn-cancel {
+  flex:1; padding:13px; border:1px solid var(--border); border-radius:var(--radius);
+  background:transparent; color:var(--muted); font-family:'DM Sans',sans-serif;
+  font-size:13.5px; cursor:pointer; transition:.2s;
+}
+.btn-cancel:hover { border-color:var(--accent); color:var(--text); }
+.btn-whatsapp {
+  flex:2; padding:13px; border:none; border-radius:var(--radius); cursor:pointer;
+  background:linear-gradient(135deg,var(--accent),var(--accent-dark));
+  color:#000; font-family:'DM Sans',sans-serif; font-weight:700; font-size:13.5px;
+  display:flex; align-items:center; justify-content:center; gap:8px; transition:.2s;
+}
+.btn-whatsapp:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(232,160,32,.3); }
+
+/* ── Responsive ── */
+@media(max-width:500px){
+  .bubble { max-width:84%; }
+}
 </style>
 </head>
 <body>
+<div class="app">
 
-<header>
-  <div class="bot-avatar">🍔</div>
-  <div>
-    <div class="bot-name">BurgerBot</div>
-    <div class="bot-sub"><span class="dot-on"></span> Burguer House · Online</div>
+  <!-- HEADER -->
+  <header>
+    <div class="bot-avatar">🍔</div>
+    <div class="bot-info">
+      <div class="bot-name">BurgerBot</div>
+      <div class="bot-sub"><span class="dot-on"></span>Burguer House · Online</div>
+    </div>
+    <div class="header-right">
+      <span class="badge-ia">🤖 IA</span>
+      <button class="cart-btn" onclick="openMenu()" title="Ver cardápio / carrinho">
+        🛒
+        <span class="cart-count" id="cartCount">0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- CHAT -->
+  <div class="chat-window" id="chatWindow"></div>
+
+  <!-- SUGGESTIONS -->
+  <div class="suggestions" id="suggestions">
+    <button class="sug-btn" onclick="openMenu()">🍔 Ver cardápio</button>
+    <button class="sug-btn" onclick="sendSuggestion('Tem delivery?')">🚗 Tem delivery?</button>
+    <button class="sug-btn" onclick="sendSuggestion('Qual o horário de funcionamento?')">⏰ Horário</button>
+    <button class="sug-btn" onclick="sendSuggestion('Quais as formas de pagamento?')">💳 Pagamento</button>
   </div>
-  <div class="header-badge">🤖 IA</div>
-</header>
 
-<div class="chat-window" id="chatWindow"></div>
+  <!-- INPUT -->
+  <div class="input-area">
+    <textarea id="userInput" placeholder="Pergunte sobre o cardápio, pedidos..." rows="1"
+      onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+    <button id="sendBtn" onclick="sendMessage()">➤</button>
+  </div>
 
-<div class="suggestions" id="suggestions">
-  <button class="sug-btn" onclick="sendSuggestion(this.textContent)">🍔 Ver cardápio</button>
-  <button class="sug-btn" onclick="sendSuggestion(this.textContent)">🚀 Fazer pedido</button>
-  <button class="sug-btn" onclick="sendSuggestion(this.textContent)">🚗 Tem delivery?</button>
-  <button class="sug-btn" onclick="sendSuggestion(this.textContent)">⏰ Horário</button>
-  <button class="sug-btn" onclick="sendSuggestion(this.textContent)">💳 Formas de pagamento</button>
 </div>
 
-<div class="input-area">
-  <textarea id="userInput" placeholder="Pergunte sobre o cardápio, pedidos..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
-  <button id="sendBtn" onclick="sendMessage()">➤</button>
+<!-- OVERLAY -->
+<div class="overlay" id="overlay" onclick="closeAll()"></div>
+
+<!-- MENU PANEL -->
+<div class="menu-panel" id="menuPanel">
+  <div class="menu-panel-header">
+    <h2>🍔 Cardápio</h2>
+    <button class="btn-close" onclick="closeMenu()">✕</button>
+  </div>
+  <div class="menu-items" id="menuItems"></div>
+  <div class="menu-panel-footer">
+    <div class="cart-total">
+      <div class="lbl">Total do pedido</div>
+      <div class="val" id="cartTotalVal">R$ 0,00</div>
+    </div>
+    <button class="btn-checkout" id="btnCheckout" disabled onclick="openCheckout()">
+      Finalizar Pedido →
+    </button>
+  </div>
+</div>
+
+<!-- CHECKOUT MODAL -->
+<div class="checkout-overlay" id="checkoutOverlay">
+  <div class="checkout-modal">
+    <h2>Finalizar Pedido</h2>
+    <div class="order-summary" id="orderSummary"></div>
+
+    <div class="form-group">
+      <label>Seu nome *</label>
+      <input type="text" id="fName" placeholder="Ex: João Silva" />
+    </div>
+    <div class="form-group">
+      <label>Telefone *</label>
+      <input type="tel" id="fPhone" placeholder="(11) 99999-9999" />
+    </div>
+    <div class="form-group">
+      <label>Tipo de entrega *</label>
+      <div class="toggle-group">
+        <div class="toggle-opt active" id="optDelivery" onclick="setDelivery(true)">🚗 Delivery</div>
+        <div class="toggle-opt" id="optPickup" onclick="setDelivery(false)">🏠 Retirada</div>
+      </div>
+    </div>
+    <div class="form-group" id="addressGroup">
+      <label>Endereço completo *</label>
+      <input type="text" id="fAddress" placeholder="Rua, número, bairro" />
+    </div>
+    <div class="form-group">
+      <label>Observações</label>
+      <textarea id="fObs" placeholder="Ex: sem cebola, ponto da carne..."></textarea>
+    </div>
+
+    <div class="checkout-actions">
+      <button class="btn-cancel" onclick="closeCheckout()">Voltar</button>
+      <button class="btn-whatsapp" onclick="submitOrder()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        </svg>
+        Confirmar via WhatsApp
+      </button>
+    </div>
+  </div>
 </div>
 
 <script>
-const SYSTEM_PROMPT = `Você é o BurgerBot, assistente virtual divertido e animado da Burguer House, uma lanchonete artesanal incrível.
+/* ════════════════════════════════════════════
+   MENU DATA
+════════════════════════════════════════════ */
+const MENU = [
+  { id:1, emoji:'🍔', name:'Classic Smash',   desc:'Blend 180g, cheddar, alface, tomate, cebola caramelizada',    price:34.90, cat:'Hambúrgueres' },
+  { id:2, emoji:'🔥', name:'Fire Double',     desc:'Duplo smash, bacon crocante, molho especial, pão brioche',    price:44.90, cat:'Hambúrgueres' },
+  { id:3, emoji:'🍗', name:'Crispy Chicken',  desc:'Frango empanado, maionese de limão, picles, coleslaw',        price:32.90, cat:'Hambúrgueres' },
+  { id:4, emoji:'🥗', name:'Veggie Smash',    desc:'Blend de grão-de-bico, queijo, rúcula, tomate seco',          price:31.90, cat:'Hambúrgueres' },
+  { id:5, emoji:'🍟', name:'Batata House',    desc:'Rústica com tempero, molho à escolha (ranch ou barbecue)',    price:16.90, cat:'Acompanhamentos' },
+  { id:6, emoji:'🥤', name:'Refrigerante',    desc:'Lata gelada',                                                 price: 7.00, cat:'Bebidas' },
+  { id:7, emoji:'🧃', name:'Suco Natural',    desc:'Suco da fruta',                                               price:12.00, cat:'Bebidas' },
+  { id:8, emoji:'🍺', name:'Cerveja',         desc:'Gelada',                                                      price:10.00, cat:'Bebidas' },
+];
 
-Cardápio completo:
-🍔 Classic Smash - Blend 180g, cheddar, alface, tomate, cebola caramelizada - R$ 34,90
-🔥 Fire Double - Duplo smash, bacon crocante, molho especial, pão brioche - R$ 44,90
-🍗 Crispy Chicken - Frango empanado, maionese de limão, picles, coleslaw - R$ 32,90
-🥗 Veggie Smash - Blend de grão-de-bico, queijo, rúcula, tomate seco - R$ 31,90
-🍟 Batata House - Rústica com tempero, escolha o molho (ranch ou barbecue) - R$ 16,90
-🥤 Refrigerantes lata - R$ 7,00
-🧃 Suco natural - R$ 12,00
-🍺 Cerveja gelada - R$ 10,00
+/* ════════════════════════════════════════════
+   CART STATE
+════════════════════════════════════════════ */
+const cart = {}; // { itemId: qty }
+let isDelivery = true;
 
-Informações da lanchonete:
-- Endereço: Rua do Bairro, 123
+function cartTotal() {
+  return MENU.reduce((acc, item) => acc + (cart[item.id] || 0) * item.price, 0);
+}
+function cartItemCount() {
+  return Object.values(cart).reduce((a, b) => a + b, 0);
+}
+function fmt(val) {
+  return val.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+}
+
+function updateCartUI() {
+  const count = cartItemCount();
+  const total = cartTotal();
+
+  // header badge
+  const badge = document.getElementById('cartCount');
+  badge.textContent = count;
+  badge.classList.toggle('visible', count > 0);
+
+  // footer total
+  document.getElementById('cartTotalVal').textContent = fmt(total);
+  document.getElementById('btnCheckout').disabled = count === 0;
+
+  // re-render qty values
+  MENU.forEach(item => {
+    const qtyEl = document.getElementById(`qty-${item.id}`);
+    if (qtyEl) qtyEl.textContent = cart[item.id] || 0;
+  });
+}
+
+function addItem(id) {
+  cart[id] = (cart[id] || 0) + 1;
+  updateCartUI();
+}
+function removeItem(id) {
+  if (!cart[id]) return;
+  cart[id]--;
+  if (cart[id] === 0) delete cart[id];
+  updateCartUI();
+}
+
+/* ════════════════════════════════════════════
+   MENU PANEL
+════════════════════════════════════════════ */
+function renderMenuItems() {
+  const container = document.getElementById('menuItems');
+  container.innerHTML = '';
+  const cats = [...new Set(MENU.map(i => i.cat))];
+  cats.forEach(cat => {
+    const catEl = document.createElement('div');
+    catEl.className = 'menu-category';
+    catEl.textContent = cat;
+    container.appendChild(catEl);
+
+    MENU.filter(i => i.cat === cat).forEach(item => {
+      const el = document.createElement('div');
+      el.className = 'menu-item';
+      el.innerHTML = `
+        <span class="emoji">${item.emoji}</span>
+        <div class="info">
+          <div class="name">${item.name}</div>
+          <div class="desc">${item.desc}</div>
+          <div class="price">${fmt(item.price)}</div>
+        </div>
+        <div class="qty-ctrl">
+          <button class="qty-btn" onclick="removeItem(${item.id})">−</button>
+          <span class="qty-val" id="qty-${item.id}">${cart[item.id] || 0}</span>
+          <button class="qty-btn" onclick="addItem(${item.id})">+</button>
+        </div>`;
+      container.appendChild(el);
+    });
+  });
+}
+
+function openMenu() {
+  renderMenuItems();
+  updateCartUI();
+  document.getElementById('menuPanel').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeMenu() {
+  document.getElementById('menuPanel').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+/* ════════════════════════════════════════════
+   CHECKOUT MODAL
+════════════════════════════════════════════ */
+function setDelivery(val) {
+  isDelivery = val;
+  document.getElementById('optDelivery').classList.toggle('active', val);
+  document.getElementById('optPickup').classList.toggle('active', !val);
+  document.getElementById('addressGroup').style.display = val ? '' : 'none';
+}
+
+function buildOrderSummary() {
+  const items = MENU.filter(i => cart[i.id]);
+  let html = items.map(i => `
+    <div class="item-line">
+      <span class="item-name">${cart[i.id]}x ${i.emoji} ${i.name}</span>
+      <span class="item-price">${fmt(cart[i.id] * i.price)}</span>
+    </div>`).join('');
+  html += `<div class="total-line"><span>Total</span><span>${fmt(cartTotal())}</span></div>`;
+  document.getElementById('orderSummary').innerHTML = html;
+}
+
+function openCheckout() {
+  if (cartItemCount() === 0) return;
+  buildOrderSummary();
+  closeMenu();
+  document.getElementById('checkoutOverlay').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeCheckout() {
+  document.getElementById('checkoutOverlay').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+function closeAll() {
+  closeMenu();
+  closeCheckout();
+}
+
+function submitOrder() {
+  const name    = document.getElementById('fName').value.trim();
+  const phone   = document.getElementById('fPhone').value.trim();
+  const address = document.getElementById('fAddress').value.trim();
+  const obs     = document.getElementById('fObs').value.trim();
+
+  if (!name)  { document.getElementById('fName').focus(); return; }
+  if (!phone) { document.getElementById('fPhone').focus(); return; }
+  if (isDelivery && !address) { document.getElementById('fAddress').focus(); return; }
+
+  const items = MENU.filter(i => cart[i.id]);
+  const lines = items.map(i => `• ${cart[i.id]}x ${i.name} — ${fmt(cart[i.id] * i.price)}`).join('\n');
+
+  const msg = [
+    `🍔 *PEDIDO — Burguer House*`,
+    ``,
+    `👤 *Nome:* ${name}`,
+    `📱 *Telefone:* ${phone}`,
+    `🚗 *Entrega:* ${isDelivery ? `Delivery\n📍 *Endereço:* ${address}` : 'Retirada no local'}`,
+    ``,
+    `📋 *Itens:*`,
+    lines,
+    ``,
+    `💰 *Total: ${fmt(cartTotal())}*`,
+    obs ? `\n📝 *Obs:* ${obs}` : '',
+  ].filter(l => l !== undefined).join('\n');
+
+  window.open(`https://wa.me/5511964421841?text=${encodeURIComponent(msg)}`, '_blank');
+
+  // Confirma no chat
+  closeCheckout();
+  addMessage('assistant', `✅ Pedido enviado!\n\nObrigado, *${name}*! Seu pedido de ${fmt(cartTotal())} foi encaminhado para o WhatsApp da Burguer House. Em instantes nossa equipe vai confirmar e iniciar o preparo! 🍔🔥\n\nTempo estimado de entrega: ~40 minutos.`);
+
+  // Limpa carrinho
+  Object.keys(cart).forEach(k => delete cart[k]);
+  updateCartUI();
+  document.getElementById('fName').value = '';
+  document.getElementById('fPhone').value = '';
+  document.getElementById('fAddress').value = '';
+  document.getElementById('fObs').value = '';
+}
+
+/* ════════════════════════════════════════════
+   CHAT
+════════════════════════════════════════════ */
+const SYSTEM_PROMPT = `Você é o BurgerBot, assistente virtual divertido da Burguer House, uma lanchonete artesanal.
+
+IMPORTANTE: O cliente pode montar o pedido diretamente no chat clicando no ícone 🛒 no topo ou no botão "Ver cardápio". O pedido é finalizado pelo WhatsApp automaticamente, sem precisar sair do chat. Quando alguém quiser pedir, oriente a usar o botão do carrinho 🛒.
+
+Cardápio:
+🍔 Classic Smash — R$ 34,90
+🔥 Fire Double — R$ 44,90
+🍗 Crispy Chicken — R$ 32,90
+🥗 Veggie Smash — R$ 31,90
+🍟 Batata House — R$ 16,90
+🥤 Refrigerante — R$ 7,00
+🧃 Suco Natural — R$ 12,00
+🍺 Cerveja — R$ 10,00
+
+Infos:
 - WhatsApp: (11) 96442-1841
-- Horário: todos os dias das 11h às 23h
-- Delivery: sim, em até 40 minutos
-- Pagamento: pix, dinheiro, cartão, débito e crédito
-- Avaliação: 4.9 estrelas com mais de 2.000 clientes satisfeitos
+- Horário: todos os dias 11h–23h
+- Delivery em até 40 minutos
+- Pagamento: pix, dinheiro, cartão
+- Avaliação: 4.9 ⭐ +2.000 clientes
 
-Seja animado, use emojis com moderação, seja direto e sempre encoraje o cliente a fazer o pedido pelo WhatsApp. Responda em português brasileiro.`;
+Seja animado, use emojis com moderação e responda em português.`;
 
 const messages = [];
 let isLoading = false;
 
 function getTime() {
-  return new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  return new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
 }
 
 function addMessage(role, content) {
-  messages.push({role, content});
+  messages.push({ role, content });
   renderMessages();
 }
 
 function renderMessages() {
   const win = document.getElementById('chatWindow');
   win.innerHTML = '';
-
   messages.forEach(msg => {
     const isUser = msg.role === 'user';
     const row = document.createElement('div');
-    row.className = `msg-row${isUser?' user':''}`;
+    row.className = `msg-row${isUser ? ' user' : ''}`;
 
-    const avatar = document.createElement('div');
-    avatar.className = `avatar${isUser?' u':''}`;
-    avatar.textContent = isUser ? '👤' : '🍔';
+    const av = document.createElement('div');
+    av.className = `avatar${isUser ? ' u' : ''}`;
+    av.textContent = isUser ? '👤' : '🍔';
 
     const bubble = document.createElement('div');
-    bubble.className = `bubble ${isUser?'user':'bot'}`;
-    bubble.innerHTML = msg.content.replace(/\n/g,'<br>');
+    bubble.className = `bubble ${isUser ? 'user' : 'bot'}`;
+    bubble.innerHTML = msg.content
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
 
     const time = document.createElement('div');
     time.className = 'time';
     time.textContent = getTime();
 
-    if (isUser) { row.appendChild(avatar); row.appendChild(time); row.appendChild(bubble); }
-    else { row.appendChild(avatar); row.appendChild(bubble); row.appendChild(time); }
+    if (isUser) { row.append(av, time, bubble); }
+    else        { row.append(av, bubble, time); }
     win.appendChild(row);
   });
-
   win.scrollTop = win.scrollHeight;
 }
 
@@ -200,19 +623,16 @@ function showTyping() {
   const win = document.getElementById('chatWindow');
   const row = document.createElement('div');
   row.className = 'msg-row'; row.id = 'typingRow';
-  const av = document.createElement('div'); av.className='avatar'; av.textContent='🍔';
-  const bubble = document.createElement('div'); bubble.className='bubble bot';
-  bubble.innerHTML='<div class="typing-dots"><span></span><span></span><span></span></div>';
-  row.appendChild(av); row.appendChild(bubble);
-  win.appendChild(row); win.scrollTop = win.scrollHeight;
+  const av = document.createElement('div'); av.className = 'avatar'; av.textContent = '🍔';
+  const b  = document.createElement('div'); b.className  = 'bubble bot';
+  b.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+  row.append(av, b);
+  win.appendChild(row);
+  win.scrollTop = win.scrollHeight;
 }
-
-function removeTyping() {
-  document.getElementById('typingRow')?.remove();
-}
+function removeTyping() { document.getElementById('typingRow')?.remove(); }
 
 async function callGroq() {
-  // Envia apenas a partir da primeira mensagem do usuário
   const firstUser = messages.findIndex(m => m.role === 'user');
   const msgs = firstUser >= 0 ? messages.slice(firstUser) : messages;
 
@@ -229,42 +649,48 @@ async function callGroq() {
     const err = await res.json().catch(() => ({}));
     throw new Error(err?.detail ?? `Erro ${res.status}`);
   }
-
   const data = await res.json();
-  return data.content?.[0]?.text || 'Ops, tive um probleminha. Tente novamente!';
+  return data.content?.[0]?.text || '...';
 }
 
 async function sendMessage(text) {
   const input = document.getElementById('userInput');
   const msg = (text || input.value).trim();
   if (!msg || isLoading) return;
+
   input.value = ''; autoResize(input);
   document.getElementById('suggestions').style.display = 'none';
   isLoading = true;
   document.getElementById('sendBtn').disabled = true;
+
   addMessage('user', msg);
   showTyping();
+
   try {
     const reply = await callGroq();
     removeTyping();
     addMessage('assistant', reply);
-  } catch(e) {
+  } catch (e) {
     removeTyping();
-    addMessage('assistant','Poxa, tive um probleminha técnico aqui! Mas pode nos chamar direto no WhatsApp: (11) 96442-1841 😄');
+    addMessage('assistant', 'Poxa, tive um probleminha técnico! Mas pode nos chamar no WhatsApp: (11) 96442-1841 😄');
     console.error(e);
   }
+
   isLoading = false;
   document.getElementById('sendBtn').disabled = false;
   input.focus();
 }
 
 function sendSuggestion(text) { sendMessage(text); }
-function handleKey(e) { if (e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
-function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,100)+'px'; }
+function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 90) + 'px'; }
 
-setTimeout(()=>{
-  addMessage('assistant','Eai! 🍔 Seja bem-vindo à **Burguer House**!\n\nSou o BurgerBot, seu assistente de pedidos. Pode me perguntar sobre o cardápio, preços, delivery ou qualquer coisa!\n\nO que vai ser hoje? 😋');
-},500);
+/* ════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════ */
+setTimeout(() => {
+  addMessage('assistant', 'Eai! 🍔 Bem-vindo à *Burguer House*!\n\nSou o BurgerBot. Pode tirar dúvidas aqui ou montar seu pedido direto clicando no 🛒 acima — sem precisar sair do chat!\n\nO que vai ser hoje? 😋');
+}, 400);
 </script>
 </body>
 </html>
