@@ -223,13 +223,22 @@ header {
 
 .form-group { margin-bottom:14px; }
 .form-group label { display:block; font-size:12px; font-weight:600; color:var(--muted); letter-spacing:.08em; text-transform:uppercase; margin-bottom:6px; }
-.form-group input, .form-group textarea {
+.form-group select, .form-group input, .form-group textarea {
   width:100%; background:var(--bg); border:1px solid var(--border); border-radius:10px;
   padding:11px 14px; font-size:13.5px; font-family:'DM Sans',sans-serif; color:var(--text);
   outline:none; transition:border-color .2s;
 }
-.form-group input:focus, .form-group textarea:focus { border-color:rgba(232,160,32,.5); }
+.form-group select:focus, .form-group input:focus, .form-group textarea:focus { border-color:rgba(232,160,32,.5); }
 .form-group input::placeholder, .form-group textarea::placeholder { color:var(--muted); }
+.form-group select option { background:var(--surface2); color:var(--text); }
+.fee-tag {
+  display:inline-flex; align-items:center; gap:6px;
+  margin-top:8px; padding:7px 12px; border-radius:8px;
+  font-size:12.5px; font-weight:600;
+  background:rgba(232,160,32,.1); border:1px solid rgba(232,160,32,.25); color:var(--accent);
+}
+.fee-tag.free { background:rgba(34,197,94,.1); border-color:rgba(34,197,94,.25); color:#22c55e; }
+.fee-tag.unavailable { background:rgba(239,68,68,.1); border-color:rgba(239,68,68,.25); color:#ef4444; }
 .form-group textarea { resize:none; height:72px; }
 
 .toggle-group { display:flex; gap:8px; }
@@ -343,9 +352,16 @@ header {
         <div class="toggle-opt" id="optPickup" onclick="setDelivery(false)">🏠 Retirada</div>
       </div>
     </div>
+    <div class="form-group" id="zoneGroup">
+      <label>Bairro / Região *</label>
+      <select id="fZone" onchange="updateZone()">
+        <option value="">Selecione o bairro...</option>
+      </select>
+      <div id="feeTag"></div>
+    </div>
     <div class="form-group" id="addressGroup">
       <label>Endereço completo *</label>
-      <input type="text" id="fAddress" placeholder="Rua, número, bairro" />
+      <input type="text" id="fAddress" placeholder="Rua, número" />
     </div>
     <div class="form-group">
       <label>Observações</label>
@@ -385,15 +401,31 @@ const MENU = [
 const cart = {}; // { itemId: qty }
 let isDelivery = true;
 
-const DELIVERY_FEE      = 6.00;  // taxa fixa de entrega
-const FREE_DELIVERY_MIN = 80.00; // pedido acima disso: frete grátis
+const FREE_DELIVERY_MIN = 80.00;
+let selectedZone = null;
+
+const DELIVERY_ZONES = [
+  { id:'centro',      name:'Centro',             fee: 5.00, group:'Próximo (até 3 km)' },
+  { id:'jardins',     name:'Jardins',            fee: 5.00, group:'Próximo (até 3 km)' },
+  { id:'bela-vista',  name:'Bela Vista',         fee: 5.00, group:'Próximo (até 3 km)' },
+  { id:'pinheiros',   name:'Pinheiros',          fee: 8.00, group:'Médio (3–7 km)' },
+  { id:'moema',       name:'Moema',              fee: 8.00, group:'Médio (3–7 km)' },
+  { id:'perdizes',    name:'Perdizes',           fee: 8.00, group:'Médio (3–7 km)' },
+  { id:'lapa',        name:'Lapa',               fee: 8.00, group:'Médio (3–7 km)' },
+  { id:'vila-mariana',name:'Vila Mariana',       fee: 8.00, group:'Médio (3–7 km)' },
+  { id:'santana',     name:'Santana',            fee:12.00, group:'Distante (7–15 km)' },
+  { id:'tatuape',     name:'Tatuapé',            fee:12.00, group:'Distante (7–15 km)' },
+  { id:'penha',       name:'Penha',              fee:12.00, group:'Distante (7–15 km)' },
+  { id:'santo-andre', name:'Santo André',        fee:15.00, group:'Distante (7–15 km)' },
+  { id:'outros',      name:'Outros / Consultar', fee:  0,   unavailable:true, group:'Fora da área de entrega' },
+];
 
 function cartSubtotal() {
   return MENU.reduce((acc, item) => acc + (cart[item.id] || 0) * item.price, 0);
 }
 function deliveryFee() {
-  if (!isDelivery) return 0;
-  return cartSubtotal() >= FREE_DELIVERY_MIN ? 0 : DELIVERY_FEE;
+  if (!isDelivery || !selectedZone || selectedZone.unavailable) return 0;
+  return cartSubtotal() >= FREE_DELIVERY_MIN ? 0 : selectedZone.fee;
 }
 function grandTotal() {
   return cartSubtotal() + deliveryFee();
@@ -417,10 +449,16 @@ function updateCartUI() {
   document.getElementById('cartTotalVal').textContent = fmt(grandTotal());
   const feeNote = document.getElementById('deliveryFeeNote');
   if (isDelivery && count > 0) {
-    const sub = cartSubtotal();
-    feeNote.textContent = sub >= FREE_DELIVERY_MIN
-      ? '🎉 Frete grátis!'
-      : `+ ${fmt(DELIVERY_FEE)} de entrega (grátis acima de ${fmt(FREE_DELIVERY_MIN)})`;
+    if (!selectedZone) {
+      feeNote.textContent = '📍 Taxa conforme bairro — defina no checkout';
+    } else if (selectedZone.unavailable) {
+      feeNote.textContent = '⚠️ Bairro fora da área — consulte pelo WhatsApp';
+    } else {
+      const sub = cartSubtotal();
+      feeNote.textContent = sub >= FREE_DELIVERY_MIN
+        ? '🎉 Frete grátis!'
+        : `+ ${fmt(selectedZone.fee)} de entrega (grátis acima de ${fmt(FREE_DELIVERY_MIN)})`;
+    }
     feeNote.style.display = 'block';
   } else {
     feeNote.style.display = 'none';
@@ -498,8 +536,15 @@ function setDelivery(val) {
   isDelivery = val;
   document.getElementById('optDelivery').classList.toggle('active', val);
   document.getElementById('optPickup').classList.toggle('active', !val);
+  document.getElementById('zoneGroup').style.display = val ? '' : 'none';
   document.getElementById('addressGroup').style.display = val ? '' : 'none';
-  buildOrderSummary(); // recalcula frete ao trocar tipo
+  if (!val) {
+    selectedZone = null;
+    document.getElementById('fZone').value = '';
+    document.getElementById('feeTag').innerHTML = '';
+  }
+  buildOrderSummary();
+  updateCartUI();
 }
 
 function buildOrderSummary() {
@@ -517,21 +562,66 @@ function buildOrderSummary() {
       <span class="item-name" style="color:var(--muted)">Subtotal</span>
       <span class="item-price" style="color:var(--muted)">${fmt(sub)}</span>
     </div>`;
+    let feeLabel, feeColor, feeVal;
+    if (!selectedZone) {
+      feeLabel = 'Taxa de entrega <span style="font-size:11px;color:var(--accent)">(selecione o bairro)</span>';
+      feeColor = 'var(--muted)'; feeVal = '—';
+    } else if (selectedZone.unavailable) {
+      feeLabel = 'Taxa de entrega <span style="color:#ef4444">⚠️ fora da área</span>';
+      feeColor = '#ef4444'; feeVal = '—';
+    } else if (fee === 0) {
+      feeLabel = `Taxa — ${selectedZone.name} <span style="color:#22c55e">🎉 grátis</span>`;
+      feeColor = '#22c55e'; feeVal = 'Grátis';
+    } else {
+      feeLabel = `Taxa — ${selectedZone.name}`;
+      feeColor = 'var(--muted)'; feeVal = fmt(fee);
+    }
     html += `<div class="item-line">
-      <span class="item-name" style="color:var(--muted)">
-        Taxa de entrega ${fee === 0 ? '<span style="color:#22c55e">🎉 grátis</span>' : ''}
-      </span>
-      <span class="item-price" style="color:${fee === 0 ? '#22c55e' : 'var(--muted)'}">
-        ${fee === 0 ? 'Grátis' : fmt(fee)}
-      </span>
+      <span class="item-name" style="color:var(--muted)">${feeLabel}</span>
+      <span class="item-price" style="color:${feeColor}">${feeVal}</span>
     </div>`;
   }
   html += `<div class="total-line"><span>Total</span><span>${fmt(grandTotal())}</span></div>`;
   document.getElementById('orderSummary').innerHTML = html;
 }
 
+function renderZoneSelect() {
+  const sel = document.getElementById('fZone');
+  sel.innerHTML = '<option value="">Selecione o bairro...</option>';
+  const groups = [...new Set(DELIVERY_ZONES.map(z => z.group))];
+  groups.forEach(g => {
+    const og = document.createElement('optgroup');
+    og.label = g;
+    DELIVERY_ZONES.filter(z => z.group === g).forEach(z => {
+      const opt = document.createElement('option');
+      opt.value = z.id;
+      opt.textContent = z.name + (z.unavailable ? '' : ` — ${fmt(z.fee)}`);
+      og.appendChild(opt);
+    });
+    sel.appendChild(og);
+  });
+}
+
+function updateZone() {
+  const val = document.getElementById('fZone').value;
+  selectedZone = DELIVERY_ZONES.find(z => z.id === val) || null;
+  const tag = document.getElementById('feeTag');
+  if (!selectedZone) {
+    tag.innerHTML = '';
+  } else if (selectedZone.unavailable) {
+    tag.innerHTML = `<span class="fee-tag unavailable">⚠️ Fora da área — entre em contato pelo WhatsApp</span>`;
+  } else if (cartSubtotal() >= FREE_DELIVERY_MIN) {
+    tag.innerHTML = `<span class="fee-tag free">🎉 Frete grátis para ${selectedZone.name}!</span>`;
+  } else {
+    tag.innerHTML = `<span class="fee-tag">🚗 Taxa de entrega: ${fmt(selectedZone.fee)}</span>`;
+  }
+  buildOrderSummary();
+  updateCartUI();
+}
+
 function openCheckout() {
   if (cartItemCount() === 0) return;
+  renderZoneSelect();
   buildOrderSummary();
   closeMenu();
   document.getElementById('checkoutOverlay').classList.add('open');
@@ -555,6 +645,8 @@ function submitOrder() {
 
   if (!name)  { document.getElementById('fName').focus(); return; }
   if (!phone) { document.getElementById('fPhone').focus(); return; }
+  if (isDelivery && !selectedZone)           { document.getElementById('fZone').focus(); return; }
+  if (isDelivery && selectedZone.unavailable){ document.getElementById('fZone').focus(); return; }
   if (isDelivery && !address) { document.getElementById('fAddress').focus(); return; }
 
   const items = MENU.filter(i => cart[i.id]);
@@ -563,9 +655,10 @@ function submitOrder() {
   const sub   = cartSubtotal();
   const total = grandTotal();
 
+  const zoneName = isDelivery && selectedZone ? ` (${selectedZone.name})` : '';
   const feeLabel = !isDelivery ? '' : fee === 0
-    ? `\n🚚 *Taxa de entrega:* Grátis 🎉`
-    : `\n💵 *Subtotal:* ${fmt(sub)}\n🚚 *Taxa de entrega:* ${fmt(fee)}`;
+    ? `\n🚚 *Taxa de entrega:* Grátis 🎉${zoneName}`
+    : `\n💵 *Subtotal:* ${fmt(sub)}\n🚚 *Taxa de entrega:* ${fmt(fee)}${zoneName}`;
 
   const msg = [
     `🍔 *PEDIDO — Burguer House*`,
@@ -587,15 +680,18 @@ function submitOrder() {
   // Confirma no chat
   closeCheckout();
   const deliveryInfo = isDelivery
-    ? `\n🚚 Taxa de entrega: ${fee === 0 ? 'Grátis 🎉' : fmt(fee)}`
+    ? `\n🚚 Taxa de entrega: ${fee === 0 ? 'Grátis 🎉' : fmt(fee)}${zoneName}`
     : '\n🏠 Retirada no local';
   addMessage('assistant', `✅ Pedido enviado!\n\nObrigado, *${name}*! Seu pedido de *${fmt(total)}* foi encaminhado para o WhatsApp da Burguer House.${deliveryInfo}\n\nEm instantes nossa equipe vai confirmar e iniciar o preparo! 🍔🔥\n\nTempo estimado: ~40 minutos.`);
 
   // Limpa carrinho
   Object.keys(cart).forEach(k => delete cart[k]);
+  selectedZone = null;
   updateCartUI();
   document.getElementById('fName').value = '';
   document.getElementById('fPhone').value = '';
+  document.getElementById('fZone').value = '';
+  document.getElementById('feeTag').innerHTML = '';
   document.getElementById('fAddress').value = '';
   document.getElementById('fObs').value = '';
 }
@@ -628,7 +724,8 @@ Cardápio:
 Infos:
 - WhatsApp: (11) 96442-1841
 - Horário: todos os dias 11h–23h
-- Delivery em até 40 minutos, taxa R$ 6,00 (grátis acima de R$ 80,00)
+- Delivery em até 40 minutos, taxa varia por bairro: R$ 5 (próximo), R$ 8 (médio), R$ 12–15 (distante) — frete grátis acima de R$ 80,00
+- O cliente escolhe o bairro no checkout para ver o valor exato
 - Pagamento: pix, dinheiro, cartão
 - Avaliação: 4.9 ⭐ +2.000 clientes
 
