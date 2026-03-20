@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Assistente Burguer House</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f0e0b;
+  --surface: #1a1914;
+  --surface2: #222118;
+  --accent: #e8a020;
+  --text: #f0ebe0;
+  --muted: rgba(240,235,224,0.5);
+  --border: rgba(232,160,32,0.12);
+  --bubble-user: #e8a020;
+  --bubble-bot: #1a1914;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); font-family:'DM Sans',sans-serif; height:100vh; display:flex; flex-direction:column; color:var(--text); }
+
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 20px;
+  display:flex; align-items:center; gap:14px;
+  flex-shrink:0;
+}
+.bot-avatar {
+  width:46px; height:46px; border-radius:12px;
+  background: linear-gradient(135deg, #e8a020, #c73c1a);
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; flex-shrink:0;
+}
+.bot-name { font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:1px; }
+.bot-sub { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:5px; }
+.dot-on { width:6px;height:6px;border-radius:50%;background:#22c55e;animation:blink 2s infinite; }
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.header-badge {
+  margin-left:auto; background:rgba(232,160,32,0.1); border:1px solid rgba(232,160,32,0.3);
+  color:var(--accent); font-size:11px; font-weight:600; padding:5px 12px; border-radius:50px;
+  letter-spacing:0.5px;
+}
+
+.chat-window {
+  flex:1; overflow-y:auto; padding:20px 16px; display:flex; flex-direction:column; gap:14px;
+}
+.chat-window::-webkit-scrollbar{width:3px;}
+.chat-window::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+
+.msg-row { display:flex; gap:10px; align-items:flex-end; max-width:700px; }
+.msg-row.user { flex-direction:row-reverse; margin-left:auto; }
+.avatar {
+  width:32px; height:32px; border-radius:8px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:15px;
+  background: linear-gradient(135deg, #e8a020, #c73c1a);
+}
+.avatar.u { background: #2a2a2a; border: 1px solid rgba(255,255,255,0.1); }
+.bubble {
+  max-width:74%; padding:12px 16px; border-radius:16px; font-size:14px; line-height:1.65;
+}
+.bubble.bot { background:var(--bubble-bot); border:1px solid var(--border); color:var(--text); border-bottom-left-radius:4px; }
+.bubble.user { background:var(--bubble-user); color:#000; font-weight:500; border-bottom-right-radius:4px; }
+.time { font-size:10px; color:var(--muted); flex-shrink:0; padding:0 2px; }
+
+.suggestions {
+  display:flex; gap:8px; flex-wrap:wrap; padding: 8px 16px;
+  overflow-x:auto;
+}
+.sug-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--accent); padding: 8px 14px; border-radius:50px;
+  font-size:12.5px; font-weight:500; cursor:pointer; transition:all 0.2s;
+  font-family:'DM Sans',sans-serif; white-space:nowrap; flex-shrink:0;
+}
+.sug-btn:hover { background: var(--accent); color:#000; border-color:var(--accent); }
+
+.input-area {
+  padding:12px 16px; background:var(--surface);
+  border-top:1px solid var(--border);
+  display:flex; gap:10px; align-items:flex-end; flex-shrink:0;
+}
+#userInput {
+  flex:1; background:var(--bg); border:1px solid var(--border); border-radius:20px;
+  padding:11px 16px; font-size:14px; font-family:'DM Sans',sans-serif;
+  color:var(--text); outline:none; resize:none; max-height:100px;
+  transition:border-color 0.2s;
+}
+#userInput:focus { border-color:rgba(232,160,32,0.5); }
+#userInput::placeholder { color:var(--muted); }
+#sendBtn {
+  width:44px;height:44px;border-radius:12px;border:none;
+  background:linear-gradient(135deg,#e8a020,#c73c1a);
+  color:#000;font-size:17px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.2s; flex-shrink:0;
+}
+#sendBtn:hover { transform:scale(1.07); }
+#sendBtn:disabled { opacity:0.4;cursor:not-allowed;transform:none; }
+
+.typing-dots { display:flex;gap:4px;padding:2px 0; }
+.typing-dots span { width:7px;height:7px;border-radius:50%;background:var(--muted);animation:bounce 1.2s ease-in-out infinite; }
+.typing-dots span:nth-child(2){animation-delay:.2s}
+.typing-dots span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-8px)}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bot-avatar">🍔</div>
+  <div>
+    <div class="bot-name">BurgerBot</div>
+    <div class="bot-sub"><span class="dot-on"></span> Burguer House · Online</div>
+  </div>
+  <div class="header-badge">🤖 IA</div>
+</header>
+
+<div class="chat-window" id="chatWindow"></div>
+
+<div class="suggestions" id="suggestions">
+  <button class="sug-btn" onclick="sendSuggestion(this.textContent)">🍔 Ver cardápio</button>
+  <button class="sug-btn" onclick="sendSuggestion(this.textContent)">🚀 Fazer pedido</button>
+  <button class="sug-btn" onclick="sendSuggestion(this.textContent)">🚗 Tem delivery?</button>
+  <button class="sug-btn" onclick="sendSuggestion(this.textContent)">⏰ Horário</button>
+  <button class="sug-btn" onclick="sendSuggestion(this.textContent)">💳 Formas de pagamento</button>
+</div>
+
+<div class="input-area">
+  <textarea id="userInput" placeholder="Pergunte sobre o cardápio, pedidos..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+  <button id="sendBtn" onclick="sendMessage()">➤</button>
+</div>
+
+<script>
+const SYSTEM_PROMPT = `Você é o BurgerBot, assistente virtual divertido e animado da Burguer House, uma lanchonete artesanal incrível.
+
+Cardápio completo:
+🍔 Classic Smash - Blend 180g, cheddar, alface, tomate, cebola caramelizada - R$ 34,90
+🔥 Fire Double - Duplo smash, bacon crocante, molho especial, pão brioche - R$ 44,90
+🍗 Crispy Chicken - Frango empanado, maionese de limão, picles, coleslaw - R$ 32,90
+🥗 Veggie Smash - Blend de grão-de-bico, queijo, rúcula, tomate seco - R$ 31,90
+🍟 Batata House - Rústica com tempero, escolha o molho (ranch ou barbecue) - R$ 16,90
+🥤 Refrigerantes lata - R$ 7,00
+🧃 Suco natural - R$ 12,00
+🍺 Cerveja gelada - R$ 10,00
+
+Informações da lanchonete:
+- Endereço: Rua do Bairro, 123
+- WhatsApp: (11) 96442-1841
+- Horário: todos os dias das 11h às 23h
+- Delivery: sim, em até 40 minutos
+- Pagamento: pix, dinheiro, cartão, débito e crédito
+- Avaliação: 4.9 estrelas com mais de 2.000 clientes satisfeitos
+
+Seja animado, use emojis com moderação, seja direto e sempre encoraje o cliente a fazer o pedido pelo WhatsApp. Responda em português brasileiro.`;
+
+const messages = [];
+let isLoading = false;
+
+function getTime() {
+  return new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+}
+
+function addMessage(role, content) {
+  messages.push({role, content});
+  renderMessages();
+}
+
+function renderMessages() {
+  const win = document.getElementById('chatWindow');
+  win.innerHTML = '';
+
+  messages.forEach(msg => {
+    const isUser = msg.role === 'user';
+    const row = document.createElement('div');
+    row.className = `msg-row${isUser?' user':''}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = `avatar${isUser?' u':''}`;
+    avatar.textContent = isUser ? '👤' : '🍔';
+
+    const bubble = document.createElement('div');
+    bubble.className = `bubble ${isUser?'user':'bot'}`;
+    bubble.innerHTML = msg.content.replace(/\n/g,'<br>');
+
+    const time = document.createElement('div');
+    time.className = 'time';
+    time.textContent = getTime();
+
+    if (isUser) { row.appendChild(avatar); row.appendChild(time); row.appendChild(bubble); }
+    else { row.appendChild(avatar); row.appendChild(bubble); row.appendChild(time); }
+    win.appendChild(row);
+  });
+
+  win.scrollTop = win.scrollHeight;
+}
+
+function showTyping() {
+  const win = document.getElementById('chatWindow');
+  const row = document.createElement('div');
+  row.className = 'msg-row'; row.id = 'typingRow';
+  const av = document.createElement('div'); av.className='avatar'; av.textContent='🍔';
+  const bubble = document.createElement('div'); bubble.className='bubble bot';
+  bubble.innerHTML='<div class="typing-dots"><span></span><span></span><span></span></div>';
+  row.appendChild(av); row.appendChild(bubble);
+  win.appendChild(row); win.scrollTop = win.scrollHeight;
+}
+
+function removeTyping() {
+  document.getElementById('typingRow')?.remove();
+}
+
+async function callGroq() {
+  // Envia apenas a partir da primeira mensagem do usuário
+  const firstUser = messages.findIndex(m => m.role === 'user');
+  const msgs = firstUser >= 0 ? messages.slice(firstUser) : messages;
+
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system: SYSTEM_PROMPT,
+      messages: msgs.map(m => ({ role: m.role, content: m.content }))
+    })
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.detail ?? `Erro ${res.status}`);
+  }
+
+  const data = await res.json();
+  return data.content?.[0]?.text || 'Ops, tive um probleminha. Tente novamente!';
+}
+
+async function sendMessage(text) {
+  const input = document.getElementById('userInput');
+  const msg = (text || input.value).trim();
+  if (!msg || isLoading) return;
+  input.value = ''; autoResize(input);
+  document.getElementById('suggestions').style.display = 'none';
+  isLoading = true;
+  document.getElementById('sendBtn').disabled = true;
+  addMessage('user', msg);
+  showTyping();
+  try {
+    const reply = await callGroq();
+    removeTyping();
+    addMessage('assistant', reply);
+  } catch(e) {
+    removeTyping();
+    addMessage('assistant','Poxa, tive um probleminha técnico aqui! Mas pode nos chamar direto no WhatsApp: (11) 96442-1841 😄');
+    console.error(e);
+  }
+  isLoading = false;
+  document.getElementById('sendBtn').disabled = false;
+  input.focus();
+}
+
+function sendSuggestion(text) { sendMessage(text); }
+function handleKey(e) { if (e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
+function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,100)+'px'; }
+
+setTimeout(()=>{
+  addMessage('assistant','Eai! 🍔 Seja bem-vindo à **Burguer House**!\n\nSou o BurgerBot, seu assistente de pedidos. Pode me perguntar sobre o cardápio, preços, delivery ou qualquer coisa!\n\nO que vai ser hoje? 😋');
+},500);
+</script>
+</body>
+</html>
